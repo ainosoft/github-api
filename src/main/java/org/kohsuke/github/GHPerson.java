@@ -17,238 +17,257 @@ import java.util.TreeMap;
  * @author Kohsuke Kawaguchi
  */
 public abstract class GHPerson extends GHObject {
-    /*package almost final*/ GitHub root;
+	/* package almost final */ GitHub	root;
 
-    // core data fields that exist even for "small" user data (such as the user info in pull request)
-    protected String login, avatar_url, gravatar_id;
+	// core data fields that exist even for "small" user data (such as the user info in pull request)
+	protected String					login, avatar_url, gravatar_id;
 
-    // other fields (that only show up in full data)
-    protected String location,blog,email,name,company;
-    protected String html_url;
-    protected int followers,following,public_repos,public_gists;
+	// other fields (that only show up in full data)
+	protected String					location, blog, email, name, company;
+	protected String					html_url;
+	protected int						followers, following, public_repos, public_gists;
 
-    /*package*/ GHPerson wrapUp(GitHub root) {
-        this.root = root;
-        return this;
-    }
+	/* package */ GHPerson wrapUp(GitHub root) {
+		this.root = root;
+		return this;
+	}
 
-    /**
-     * Fully populate the data by retrieving missing data.
-     *
-     * Depending on the original API call where this object is created, it may not contain everything.
-     */
-    protected synchronized void populate() throws IOException {
-        if (created_at!=null) {
-            return; // already populated
-        }
-        if (root == null || root.isOffline()) {
-            return; // cannot populate, will have to live with what we have
-        }
-        root.retrieve().to(url, this);
-    }
+	/**
+	 * Fully populate the data by retrieving missing data. Depending on the original API call where this object is
+	 * created, it may not contain everything.
+	 */
+	protected synchronized void populate() throws IOException {
+		if (created_at != null) {
+			return; // already populated
+		}
+		if (root == null || root.isOffline()) {
+			return; // cannot populate, will have to live with what we have
+		}
+		root.retrieve().to(url, this);
+	}
 
-    /**
-     * Gets the public repositories this user owns.
-     *
-     * <p>
-     * To list your own repositories, including private repositories,
-     * use {@link GHMyself#listRepositories()}
-     */
-    public synchronized Map<String,GHRepository> getRepositories() throws IOException {
-        Map<String,GHRepository> repositories = new TreeMap<String, GHRepository>();
-        for (GHRepository r : listRepositories(100)) {
-            repositories.put(r.getName(),r);
-        }
-        return Collections.unmodifiableMap(repositories);
-    }
+	/**
+	 * Gets the public repositories this user owns.
+	 * <p>
+	 * To list your own repositories, including private repositories, use {@link GHMyself#listRepositories()}
+	 */
+	public synchronized Map<String, GHRepository> getRepositories() throws IOException {
+		Map<String, GHRepository> repositories = new TreeMap<String, GHRepository>();
+		for (GHRepository r : listRepositories(100)) {
+			repositories.put(r.getName(), r);
+		}
+		return Collections.unmodifiableMap(repositories);
+	}
 
-    /**
-     * Lists up all the repositories using a 30 items page size.
-     *
-     * Unlike {@link #getRepositories()}, this does not wait until all the repositories are returned.
-     */
-    public PagedIterable<GHRepository> listRepositories() {
-      return listRepositories(30);
-    }
+	public synchronized Map<String, GHProject> getProjects() throws IOException {
+		Map<String, GHProject> projects = new TreeMap<String, GHProject>();
+		for (GHProject r : listProjects(100)) {
+			projects.put(r.getName(), r);
+		}
+		return Collections.unmodifiableMap(projects);
+	}
 
-    /**
-     * Lists up all the repositories using the specified page size.
-     *
-     * @param pageSize size for each page of items returned by GitHub. Maximum page size is 100.
-     *
-     * Unlike {@link #getRepositories()}, this does not wait until all the repositories are returned.
-     */
-    public PagedIterable<GHRepository> listRepositories(final int pageSize) {
-        return new PagedIterable<GHRepository>() {
-            public PagedIterator<GHRepository> _iterator(int pageSize) {
-                return new PagedIterator<GHRepository>(root.retrieve().asIterator("/users/" + login + "/repos", GHRepository[].class, pageSize)) {
-                    @Override
-                    protected void wrapUp(GHRepository[] page) {
-                        for (GHRepository c : page)
-                            c.wrap(root);
-                    }
-                };
-            }
-        }.withPageSize(pageSize);
-    }
+	/**
+	 * Lists up all the repositories using a 30 items page size. Unlike {@link #getRepositories()}, this does not wait
+	 * until all the repositories are returned.
+	 */
+	public PagedIterable<GHRepository> listRepositories() {
+		return listRepositories(30);
+	}
 
-    /**
-     * Loads repository list in a paginated fashion.
-     * 
-     * <p>
-     * For a person with a lot of repositories, GitHub returns the list of repositories in a paginated fashion.
-     * Unlike {@link #getRepositories()}, this method allows the caller to start processing data as it arrives.
-     * 
-     * Every {@link Iterator#next()} call results in I/O. Exceptions that occur during the processing is wrapped
-     * into {@link Error}.
-     *
-     * @deprecated
-     *      Use {@link #listRepositories()}
-     */
-    public synchronized Iterable<List<GHRepository>> iterateRepositories(final int pageSize) {
-        return new Iterable<List<GHRepository>>() {
-            public Iterator<List<GHRepository>> iterator() {
-                final Iterator<GHRepository[]> pager = root.retrieve().asIterator("/users/" + login + "/repos",GHRepository[].class, pageSize);
+	public PagedIterable<GHProject> listProjects() {
+		return listProjects(30);
+	}
 
-                return new Iterator<List<GHRepository>>() {
-                    public boolean hasNext() {
-                        return pager.hasNext();
-                    }
+	/**
+	 * Lists up all the repositories using the specified page size.
+	 *
+	 * @param pageSize
+	 *            size for each page of items returned by GitHub. Maximum page size is 100. Unlike
+	 *            {@link #getRepositories()}, this does not wait until all the repositories are returned.
+	 */
+	public PagedIterable<GHRepository> listRepositories(final int pageSize) {
+		return new PagedIterable<GHRepository>() {
+			public PagedIterator<GHRepository> _iterator(int pageSize) {
+				return new PagedIterator<GHRepository>(
+						root.retrieve().asIterator("/users/" + login + "/repos", GHRepository[].class, pageSize)) {
+					@Override
+					protected void wrapUp(GHRepository[] page) {
+						for (GHRepository c : page)
+							c.wrap(root);
+					}
+				};
+			}
+		}.withPageSize(pageSize);
+	}
 
-                    public List<GHRepository> next() {
-                        GHRepository[] batch = pager.next();
-                        for (GHRepository r : batch)
-                            r.root = root;
-                        return Arrays.asList(batch);
-                    }
+	public PagedIterable<GHProject> listProjects(final int pageSize) {
+		return new PagedIterable<GHProject>() {
+			public PagedIterator<GHProject> _iterator(int pageSize) {
+				return new PagedIterator<GHProject>(
+						root.retrieve().asIterator("/users/" + login + "/projects", GHProject[].class, pageSize)) {
+					@Override
+					protected void wrapUp(GHProject[] page) {
+						for (GHProject c : page)
+							c.wrap(root);
+					}
+				};
+			}
+		}.withPageSize(pageSize);
+	}
 
-                    public void remove() {
-                        throw new UnsupportedOperationException();
-                    }
-                };
-            }
-        };
-    }
+	/**
+	 * Loads repository list in a paginated fashion.
+	 * <p>
+	 * For a person with a lot of repositories, GitHub returns the list of repositories in a paginated fashion. Unlike
+	 * {@link #getRepositories()}, this method allows the caller to start processing data as it arrives. Every
+	 * {@link Iterator#next()} call results in I/O. Exceptions that occur during the processing is wrapped into
+	 * {@link Error}.
+	 *
+	 * @deprecated Use {@link #listRepositories()}
+	 */
+	public synchronized Iterable<List<GHRepository>> iterateRepositories(final int pageSize) {
+		return new Iterable<List<GHRepository>>() {
+			public Iterator<List<GHRepository>> iterator() {
+				final Iterator<GHRepository[]> pager = root.retrieve().asIterator("/users/" + login + "/repos",
+						GHRepository[].class, pageSize);
 
-    /**
-     *
-     * @return
-     *      null if the repository was not found
-     */
-    public GHRepository getRepository(String name) throws IOException {
-        try {
-            return root.retrieve().to("/repos/" + login + '/' + name, GHRepository.class).wrap(root);
-        } catch (FileNotFoundException e) {
-            return null;
-        }
-    }
+				return new Iterator<List<GHRepository>>() {
+					public boolean hasNext() {
+						return pager.hasNext();
+					}
 
-    /**
-     * Lists events for an organization or an user.
-     */
-    public abstract PagedIterable<GHEventInfo> listEvents() throws IOException;
+					public List<GHRepository> next() {
+						GHRepository[] batch = pager.next();
+						for (GHRepository r : batch)
+							r.root = root;
+						return Arrays.asList(batch);
+					}
 
-    /**
-     * Gravatar ID of this user, like 0cb9832a01c22c083390f3c5dcb64105
-     *
-     * @deprecated
-     *      No longer available in the v3 API.
-     */
-    public String getGravatarId() {
-        return gravatar_id;
-    }
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+				};
+			}
+		};
+	}
 
-    /**
-     * Returns a string like 'https://secure.gravatar.com/avatar/0cb9832a01c22c083390f3c5dcb64105'
-     * that indicates the avatar image URL.
-     */
-    public String getAvatarUrl() {
-        if (avatar_url!=null)
-            return avatar_url;
-        if (gravatar_id!=null)
-            return "https://secure.gravatar.com/avatar/"+gravatar_id;
-        return null;
-    }
+	/**
+	 * @return null if the repository was not found
+	 */
+	public GHRepository getRepository(String name) throws IOException {
+		try {
+			return root.retrieve().to("/repos/" + login + '/' + name, GHRepository.class).wrap(root);
+		} catch (FileNotFoundException e) {
+			return null;
+		}
+	}
 
-    /**
-     * Gets the login ID of this user, like 'kohsuke'
-     */
-    public String getLogin() {
-        return login;
-    }
+	/**
+	 * Lists events for an organization or an user.
+	 */
+	public abstract PagedIterable<GHEventInfo> listEvents() throws IOException;
 
-    /**
-     * Gets the human-readable name of the user, like "Kohsuke Kawaguchi"
-     */
-    public String getName() throws IOException {
-        populate();
-        return name;
-    }
+	/**
+	 * Gravatar ID of this user, like 0cb9832a01c22c083390f3c5dcb64105
+	 *
+	 * @deprecated No longer available in the v3 API.
+	 */
+	public String getGravatarId() {
+		return gravatar_id;
+	}
 
-    /**
-     * Gets the company name of this user, like "Sun Microsystems, Inc."
-     */
-    public String getCompany() throws IOException {
-        populate();
-        return company;
-    }
+	/**
+	 * Returns a string like 'https://secure.gravatar.com/avatar/0cb9832a01c22c083390f3c5dcb64105' that indicates the
+	 * avatar image URL.
+	 */
+	public String getAvatarUrl() {
+		if (avatar_url != null)
+			return avatar_url;
+		if (gravatar_id != null)
+			return "https://secure.gravatar.com/avatar/" + gravatar_id;
+		return null;
+	}
 
-    /**
-     * Gets the location of this user, like "Santa Clara, California"
-     */
-    public String getLocation() throws IOException {
-        populate();
-        return location;
-    }
+	/**
+	 * Gets the login ID of this user, like 'kohsuke'
+	 */
+	public String getLogin() {
+		return login;
+	}
 
-    public Date getCreatedAt() throws IOException {
-        populate();
-        return super.getCreatedAt();
-    }
+	/**
+	 * Gets the human-readable name of the user, like "Kohsuke Kawaguchi"
+	 */
+	public String getName() throws IOException {
+		populate();
+		return name;
+	}
 
-    public Date getUpdatedAt() throws IOException {
-        populate();
-        return super.getUpdatedAt();
-    }
+	/**
+	 * Gets the company name of this user, like "Sun Microsystems, Inc."
+	 */
+	public String getCompany() throws IOException {
+		populate();
+		return company;
+	}
 
-    /**
-     * Gets the blog URL of this user.
-     */
-    public String getBlog() throws IOException {
-        populate();
-        return blog;
-    }
+	/**
+	 * Gets the location of this user, like "Santa Clara, California"
+	 */
+	public String getLocation() throws IOException {
+		populate();
+		return location;
+	}
 
-    @Override
-    public URL getHtmlUrl() {
-        return GitHub.parseURL(html_url);
-    }
+	public Date getCreatedAt() throws IOException {
+		populate();
+		return super.getCreatedAt();
+	}
 
-    /**
-     * Gets the e-mail address of the user.
-     */
-    public String getEmail() throws IOException {
-        populate();
-        return email;
-    }
+	public Date getUpdatedAt() throws IOException {
+		populate();
+		return super.getUpdatedAt();
+	}
 
-    public int getPublicGistCount() throws IOException {
-        populate();
-        return public_gists;
-    }
+	/**
+	 * Gets the blog URL of this user.
+	 */
+	public String getBlog() throws IOException {
+		populate();
+		return blog;
+	}
 
-    public int getPublicRepoCount() throws IOException {
-        populate();
-        return public_repos;
-    }
+	@Override
+	public URL getHtmlUrl() {
+		return GitHub.parseURL(html_url);
+	}
 
-    public int getFollowingCount() throws IOException {
-        populate();
-        return following;
-    }
+	/**
+	 * Gets the e-mail address of the user.
+	 */
+	public String getEmail() throws IOException {
+		populate();
+		return email;
+	}
 
-    public int getFollowersCount() throws IOException {
-        populate();
-        return followers;
-    }
+	public int getPublicGistCount() throws IOException {
+		populate();
+		return public_gists;
+	}
+
+	public int getPublicRepoCount() throws IOException {
+		populate();
+		return public_repos;
+	}
+
+	public int getFollowingCount() throws IOException {
+		populate();
+		return following;
+	}
+
+	public int getFollowersCount() throws IOException {
+		populate();
+		return followers;
+	}
 }

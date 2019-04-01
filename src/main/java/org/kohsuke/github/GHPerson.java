@@ -137,7 +137,23 @@ public abstract class GHPerson extends GHObject {
      */
     public GHRepository getRepository(String name) throws IOException {
         try {
-            return root.retrieve().to("/repos/" + login + '/' + name, GHRepository.class).wrap(root);
+        	
+            return root.retrieve().to("/repo/" + login + '/' + name, GHRepository.class).wrap(root);
+        } catch (FileNotFoundException e) {
+            return null;
+        }
+    }
+    
+    /**
+    *
+    * @return
+    *      null if the project was not found
+    */
+    public GHOrgProject getProject(Integer project_id) throws IOException {
+        try {
+        	Requester requester=root.retrieve();
+		    requester.setHeader("Accept", "application/vnd.github.inertia-preview+json");
+            return requester.to("/projects/" +project_id, GHOrgProject.class).wrap(root);
         } catch (FileNotFoundException e) {
             return null;
         }

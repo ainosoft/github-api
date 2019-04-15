@@ -361,6 +361,59 @@ public class GHRepository extends GHObject {
             }
         };
     }
+    
+    /**
+     * Lists up all the projects using a 30 items page size.
+     *
+     * Unlike {@link #getRepositories()}, this does not wait until all the repositories are returned.
+     */
+	public PagedIterable<GHOrgProject> listProjects() {
+		return listProjects(30);
+	}
+
+
+	/**
+	 * Lists up all the projects using the specified page size.
+	 *
+	 * @param pageSize size for each page of items returned by GitHub. Maximum page size is 100.
+	 *
+	 * Unlike {@link #getRepositories()}, this does not wait until all the projects are returned.
+	 */
+	public PagedIterable<GHOrgProject> listProjects(final int pageSize) {
+		return new PagedIterable<GHOrgProject>() {
+			public PagedIterator<GHOrgProject> _iterator(int pageSize) {
+				final Requester requester=root.retrieve();
+				requester.setHeader("Accept", "application/vnd.github.inertia-preview+json");
+
+				return new PagedIterator<GHOrgProject>(requester.asIterator("/repos/"+owner.getLogin()+"/"+name+"/projects", GHOrgProject[].class, pageSize)) {
+					@Override
+					protected void wrapUp(GHOrgProject[] page) {
+						for (GHOrgProject c : page)
+							c.wrap(root);
+					}
+				};
+			}
+		}.withPageSize(pageSize);
+	}
+
+	
+	/**
+	 * Starts a builder that creates a new project.
+	 *
+	 * <p>
+	 * You use the returned builder to set various properties, then call {@link GHCreateProjectBuilder#create()}
+	 * to finally createa project.
+	 */
+	public GHCreateProjectBuilder createProject(String name) {
+		return new GHCreateProjectBuilder(root,"/repos/"+owner.getLogin()+"/"+this.name+"/projects",name);
+	}
+    
+    
+    
+    
+    
+    
+    
 
     /**
      * List languages for the specified repository.

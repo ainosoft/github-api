@@ -27,9 +27,9 @@ public class GHCreateProjectBuilder {
 	    
 	    
 
-	    public GHOrgProject create() throws IOException {
+	    public GHProject create() throws IOException {
 	    	builder.setHeader("Accept", "application/vnd.github.inertia-preview+json");		     	
-	        return builder.method("POST").to(apiUrlTail, GHOrgProject.class).wrap(root);
+	        return (GHProject) builder.method("POST").to(apiUrlTail, GHProject.class).wrap(root);
 	    }
 
 }
